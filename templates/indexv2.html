@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Selenium Browser View</title>
+  <style>
+    #screenshot {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin-top: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Web Automation with Selenium (Live Browser View)</h1>
+
+  <section>
+    <h2>Search Google</h2>
+    <label for="search">Enter search query:</label>
+    <input type="text" id="search" placeholder="Search query">
+    <button onclick="searchGoogle()">Search</button>
+  </section>
+
+  <section>
+    <h2>Cookies Management</h2>
+    <button onclick="getCookies()">Get Cookies</button>
+    <button onclick="setCookies()">Set Cookies</button>
+  </section>
+
+  <section>
+    <h2>Live Browser Screenshot</h2>
+    <img id="screenshot" src="" alt="Live Browser Screenshot">
+  </section>
+
+  <pre id="output"></pre>
+
+  <script>
+    async function searchGoogle() {
+      const query = document.getElementById("search").value;
+      const response = await fetch("/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query })
+      });
+      const result = await response.json();
+      document.getElementById("output").innerText = JSON.stringify(result, null, 2);
+    }
+
+    async function getCookies() {
+      const response = await fetch("/get_cookies");
+      const result = await response.json();
+      document.getElementById("output").innerText = JSON.stringify(result, null, 2);
+    }
+
+    async function setCookies() {
+      const cookies = prompt("Enter cookies in JSON format:");
+      try {
+        const parsedCookies = JSON.parse(cookies);
+        await fetch("/set_cookies", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cookies: parsedCookies })
+        });
+        document.getElementById("output").innerText = "Cookies Set!";
+      } catch (error) {
+        alert("Invalid JSON format");
+      }
+    }
+
+    async function updateScreenshot() {
+      try {
+        const response = await fetch("/screenshot");
+        const data = await response.json();
+        document.getElementById("screenshot").src = "data:image/png;base64," + data.screenshot;
+      } catch (error) {
+        console.error("Error fetching screenshot:", error);
+      }
+    }
+
+    // Update the screenshot every 5 seconds.
+    setInterval(updateScreenshot, 5000);
+    // Get an initial screenshot on page load.
+    updateScreenshot();
+  </script>
+</body>
+</html>

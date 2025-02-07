@@ -1,0 +1,52 @@
+{
+  "0": {
+    "domain": "www.google.com",
+    "expiry": 1738972718,
+    "httpOnly": false,
+    "name": "UULE",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "a+cm9sZTogMQpwcm9kdWNlcjogMTIKdGltZXN0YW1wOiAxNzM4OTUxMTE4MjM0MDAwCmxhdGxuZyB7CiAgbGF0aXR1ZGVfZTc6IDM3NDMxNTczNAogIGxvbmdpdHVkZV9lNzogLTc4NjU2ODk0Mgp9CnJhZGl1czogMTg5MDcwNzM0Ny41OTE5NjU3CnByb3ZlbmFuY2U6IDYK"
+  },
+  "1": {
+    "domain": ".google.com",
+    "expiry": 1754501229,
+    "httpOnly": true,
+    "name": "AEC",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "AVcja2df8SlKDWv-ZzPVq2ibcoRyAxXi_S2P-oAG_xU7IpB3za6321NNHCs"
+  },
+  "2": {
+    "domain": ".www.google.com",
+    "expiry": 1738972602,
+    "httpOnly": false,
+    "name": "UULE",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "a+cm9sZTogMQpwcm9kdWNlcjogMTIKdGltZXN0YW1wOiAxNzM4OTUxMDAyMjkwMDAwCmxhdGxuZyB7CiAgbGF0aXR1ZGVfZTc6IDM3NDMxNTczNAogIGxvbmdpdHVkZV9lNzogLTc4NjU2ODk0Mgp9CnJhZGl1czogMTg5MDcwNzM0Ny41OTE5NjU3CnByb3ZlbmFuY2U6IDYK"
+  },
+  "3": {
+    "domain": ".google.com",
+    "expiry": 1754760429,
+    "httpOnly": true,
+    "name": "NID",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "521=FTYvWtQ0KMagYYsRuSknbbxItAGSfQmsFVn9BXDRzebMlr47xaXZAgjAx4wJCx_yMIRbo34dnJWKlMmeQ5Kfaq3DrZTcrllTbYUkakgxg_EXlcyIerNmy7piLSyR45430XWjEw2NUf5d5ZBL0WraIvIIpfDUgDGjhVlLbm815rdND7KMe8ka2vOil08L_HuV3oN117hf2MRUbZolnghtIvKzZWwekrreY6M1DA"
+  },
+  "4": {
+    "domain": ".google.com",
+    "expiry": 1741541229,
+    "httpOnly": false,
+    "name": "OGPC",
+    "path": "/",
+    "sameSite": "Lax",
+    "secure": true,
+    "value": "19046228-1:"
+  }
+}

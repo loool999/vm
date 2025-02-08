@@ -1,52 +1,50 @@
 {
   "0": {
-    "domain": "www.google.com",
-    "expiry": 1738972718,
+    "domain": ".whatsmyip.com",
     "httpOnly": false,
-    "name": "UULE",
+    "name": "PHPSESSID",
     "path": "/",
     "sameSite": "Lax",
     "secure": true,
-    "value": "a+cm9sZTogMQpwcm9kdWNlcjogMTIKdGltZXN0YW1wOiAxNzM4OTUxMTE4MjM0MDAwCmxhdGxuZyB7CiAgbGF0aXR1ZGVfZTc6IDM3NDMxNTczNAogIGxvbmdpdHVkZV9lNzogLTc4NjU2ODk0Mgp9CnJhZGl1czogMTg5MDcwNzM0Ny41OTE5NjU3CnByb3ZlbmFuY2U6IDYK"
+    "value": "3osi8opfql8iohmfuddou76jaq"
   },
   "1": {
-    "domain": ".google.com",
-    "expiry": 1754501229,
-    "httpOnly": true,
-    "name": "AEC",
+    "domain": ".whatsmyip.com",
+    "expiry": 1773524104,
+    "httpOnly": false,
+    "name": "_ga_Y55MP7HG9P",
     "path": "/",
     "sameSite": "Lax",
     "secure": true,
-    "value": "AVcja2df8SlKDWv-ZzPVq2ibcoRyAxXi_S2P-oAG_xU7IpB3za6321NNHCs"
+    "value": "GS1.1.1738964104.1.0.1738964104.0.0.0"
   },
   "2": {
-    "domain": ".www.google.com",
-    "expiry": 1738972602,
+    "domain": ".whatsmyip.com",
+    "expiry": 1773524104,
     "httpOnly": false,
-    "name": "UULE",
+    "name": "_ga",
     "path": "/",
     "sameSite": "Lax",
     "secure": true,
-    "value": "a+cm9sZTogMQpwcm9kdWNlcjogMTIKdGltZXN0YW1wOiAxNzM4OTUxMDAyMjkwMDAwCmxhdGxuZyB7CiAgbGF0aXR1ZGVfZTc6IDM3NDMxNTczNAogIGxvbmdpdHVkZV9lNzogLTc4NjU2ODk0Mgp9CnJhZGl1czogMTg5MDcwNzM0Ny41OTE5NjU3CnByb3ZlbmFuY2U6IDYK"
+    "value": "GA1.1.1855427952.1738964104"
   },
   "3": {
-    "domain": ".google.com",
-    "expiry": 1754760429,
-    "httpOnly": true,
-    "name": "NID",
+    "domain": ".whatsmyip.com",
+    "expiry": 1772663741,
+    "httpOnly": false,
+    "name": "usprivacy",
     "path": "/",
     "sameSite": "Lax",
     "secure": true,
-    "value": "521=FTYvWtQ0KMagYYsRuSknbbxItAGSfQmsFVn9BXDRzebMlr47xaXZAgjAx4wJCx_yMIRbo34dnJWKlMmeQ5Kfaq3DrZTcrllTbYUkakgxg_EXlcyIerNmy7piLSyR45430XWjEw2NUf5d5ZBL0WraIvIIpfDUgDGjhVlLbm815rdND7KMe8ka2vOil08L_HuV3oN117hf2MRUbZolnghtIvKzZWwekrreY6M1DA"
+    "value": "1N--"
   },
   "4": {
-    "domain": ".google.com",
-    "expiry": 1741541229,
+    "domain": "whatsmyip.com",
     "httpOnly": false,
-    "name": "OGPC",
+    "name": "PHPSESSID",
     "path": "/",
     "sameSite": "Lax",
-    "secure": true,
-    "value": "19046228-1:"
+    "secure": false,
+    "value": "3hk06hinpklqpjocpuj217dcku"
   }
 }

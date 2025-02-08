@@ -1,10 +1,10 @@
-from flask import Flask, render_template, request, jsonify, Response, send_from_directory
+from flask import Flask, render_template, request, jsonify, Response
 import threading
 from selenium.webdriver import Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException, InvalidArgumentException, StaleElementReferenceException, ElementNotInteractableException, MoveTargetOutOfBoundsException
+from selenium.common.exceptions import TimeoutException, WebDriverException, InvalidArgumentException
 import json
 import os
 from time import sleep
@@ -12,12 +12,6 @@ from urllib.parse import urlparse, urlunparse
 import io
 import base64
 from PIL import Image
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-import logging
-
-# --- Configure Logging ---
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Selenium Code ---
 
@@ -129,57 +123,44 @@ def save_cookies(driver: Chrome) -> None:
         for index, value in enumerate(driver.get_cookies()):
             db[str(index)] = value
     except Exception as e:
-        logging.error(f"save_cookies fail: {e}")
+        print("fail", e)
     else:
-        logging.info("save_cookies done")
+        print("done")
 
 def load_cookies(driver: Chrome) -> None:
     try:
-        added_cookies = set()  # Keep track of added cookies
         for key in sorted([key for key in db.keys() if key.isnumeric()], key=lambda key: int(key)):
             cookie: dict = db[key]
-            cookie_id = (cookie['domain'], cookie['name']) # Unique identifier for the cookie
-
-            if cookie_id not in added_cookies:
-                url = assemble_url(cookie)
-                try:
-                    # Only navigate if the domain is different AND we haven't already added this cookie
-                   if urlparse(driver.current_url).hostname != urlparse(url).hostname:
-                        driver.get(url)
-                except Exception as navigate_err:
-                    logging.error(f"Navigation error during load_cookies: {navigate_err}")
-                    continue # Skip this cookie if navigation fails
-                try:
-                    driver.add_cookie(cookie)
-                    added_cookies.add(cookie_id)  # Mark this cookie as added
-                except Exception as add_cookie_err:
-                    logging.error(f"Error adding cookie: {add_cookie_err}")
+            url = assemble_url(cookie)
+            if urlparse(driver.current_url).hostname != urlparse(url).hostname:
+                driver.get(url)
+            driver.add_cookie(cookie)
     except Exception as e:
-        logging.error(f"load_cookies fail: {e}")
+        print("fail", e)
     else:
-        logging.info("load_cookies done")
+        print("done")
 
 def is_localstorage() -> bool:
     return len([key for key in db.keys() if key.isalpha()]) > 0
 
 def save_localstorage(ls: LocalStorage) -> None:
     try:
-        items = ls.items()  # Get the dictionary
-        for key, value in items.items():  # Iterate over the dictionary's items
+        for key, value in ls.items():
             db[key] = value
     except Exception as e:
-        logging.error(f"save_localstorage fail: {e}")
+        print("fail", e)
     else:
-        logging.info("save_localstorage done")
+        print("done")
 
 def load_localstorage(ls: LocalStorage) -> None:
+    assert SINGLE_PAGE, "SINGLE_PAGE must be set"
     try:
         for key in [key for key in db.keys() if key.isalpha()]:
             ls[key] = db[key]
     except Exception as e:
-        logging.error(f"load_localstorage fail: {e}")
+        print("fail", e)
     else:
-        logging.info("load_localstorage done")
+        print("done")
 
 def validate_url(url):
     """Validates and formats a URL."""
@@ -196,90 +177,87 @@ def validate_url(url):
 SINGLE_PAGE = ""  # Global variable for the URL
 driver = None  # Global driver variable
 image_data = None # Global variable to store the latest image
-driver_lock = threading.Lock()  # Lock for thread-safe driver access
 
 def run_browser(initial_url: str = "https://www.google.com"):
     global SINGLE_PAGE, driver, image_data
     validated_url = validate_url(initial_url)
     if validated_url is None:
-        logging.error(f"Invalid URL: {initial_url}.  Using default URL.")
+        print(f"Invalid URL: {initial_url}.  Using default URL.")
         validated_url = "https://www.google.com"
-    SINGLE_PAGE = validated_url  # Always use the validated URL
+    SINGLE_PAGE = validated_url
 
-    logging.info(f"Starting Ultimate Chrome 2 with URL: {SINGLE_PAGE}")
+    print(f"Starting Ultimate Chrome 2 with URL: {SINGLE_PAGE}")
 
     chrome_options = ChromeOptions()
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--headless')
-    chrome_options.add_argument("start-maximized")
+
+    if SINGLE_PAGE:
+        chrome_options.add_argument('--kiosk')
+    else:
+        chrome_options.add_argument("start-maximized")
 
     try:
         driver = Chrome(options=chrome_options)
-        logging.info("Chrome driver started successfully.")  # Log successful start
     except WebDriverException as e:
-        logging.error(f"Error starting Chrome: {e}")
+        print(f"Error starting Chrome: {e}")
+        return
+
+    ls = LocalStorage(driver)
+
+    try:
+        if driver:  # Check if driver was successfully created
+            driver.get(SINGLE_PAGE)
+    except InvalidArgumentException as e:
+        print(f"Error navigating to {SINGLE_PAGE}: {e}")
+        return
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
         return
 
 
-    with driver_lock: # Protect driver during initialization and ls creation
-        ls = LocalStorage(driver)
+    if is_cookies():
+        print("Found cookies!")
+        load_cookies(driver)
 
+    if SINGLE_PAGE and is_localstorage():
+        print("Found LocalStorage data!")
+        load_localstorage(ls)
+
+    if not SINGLE_PAGE:
         try:
-            driver.get(SINGLE_PAGE)
-            logging.info(f"Successfully navigated to {SINGLE_PAGE}")  # Log successful navigation
-        except InvalidArgumentException as e:
-            logging.error(f"Error navigating to {SINGLE_PAGE}: {e}")
-            driver.quit()  # Quit the driver if initial navigation fails
-            return
-        except Exception as e:
-            logging.error(f"An unexpected error occurred during initial navigation: {e}")
-            driver.quit()
-            return
+            search_box = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.NAME, "q"))
+            )
+            search_box.send_keys("ready")
+        except TimeoutException:
+            print("Search box not found.")
 
-        if is_cookies():
-            logging.info("Found cookies!")
-            load_cookies(driver)
-
-        if is_localstorage():
-            logging.info("Found LocalStorage data!")
-            load_localstorage(ls)
-
-    logging.info("Running in headless mode. Data saved periodically.")
+    print("Running in headless mode. Data saved periodically.")
 
     try:
         while True:
             # Capture screenshot and store in global variable
-            with driver_lock:  # Acquire lock for driver access
-                try:
-                    img_binary = driver.get_screenshot_as_png()
-                    img = Image.open(io.BytesIO(img_binary))
-                    buffered = io.BytesIO()
-                    img.save(buffered, format="JPEG")  # Convert to JPEG
-                    image_data = base64.b64encode(buffered.getvalue()).decode("utf-8")
-                except StaleElementReferenceException:
-                    logging.warning("Stale element during screenshot.  Continuing...")
-                    continue  # Try again in the next iteration
-                except Exception as e:
-                    logging.error(f"Error during screenshot capture: {e}")
-                    break  # Exit loop on other screenshot errors
-
-            sleep(0.1)  # Capture every 100ms
-
-            with driver_lock:  # Acquire lock for driver access
-                save_cookies(driver)
-                if is_localstorage():
-                    save_localstorage(ls)
-
-    except KeyboardInterrupt:
-        logging.info("Shutting down...")
-    finally:
-        with driver_lock:
+            if driver:
+                img_binary = driver.get_screenshot_as_png()
+                img = Image.open(io.BytesIO(img_binary))
+                buffered = io.BytesIO()
+                img.save(buffered, format="JPEG")  # Convert to JPEG for smaller size
+                image_data = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            sleep(0)  # Capture every 100ms
             if driver:
                 save_cookies(driver)
-                driver.quit()
+            if SINGLE_PAGE and driver:
+                save_localstorage(ls)
 
+    except KeyboardInterrupt:
+        print("Shutting down...")
+    finally:
+        if driver:
+            save_cookies(driver)
+            driver.quit()
 
 
 # --- Flask App Setup ---
@@ -292,8 +270,8 @@ def index():
 
 @app.route('/start_browser', methods=['POST'])
 def start_browser_route():
-    global driver
-    if driver is None:
+    global driver  # Access the global driver variable
+    if driver is None: # Only start a new browser if one isn't already running
         url = request.form.get('url', 'https://www.google.com')
         thread = threading.Thread(target=run_browser, args=(url,))
         thread.daemon = True
@@ -308,122 +286,7 @@ def get_image():
     if image_data:
         return jsonify({'image': image_data})
     else:
-        return jsonify({'image': ''})
-
-@app.route('/interact', methods=['POST'])
-def interact():
-    global driver
-    data = request.get_json()
-    logging.debug(f"Received interaction request: {data}")  # Log the received data
-
-    with driver_lock:
-        if not driver:
-            return jsonify({'status': 'error', 'message': 'Browser not started'})
-
-        try:
-            action = data.get('action')
-            x = data.get('x', 0)
-            y = data.get('y', 0)
-            text = data.get('text', '')
-            key = data.get('key', '')
-
-            if action == 'click':
-                # Find the element at the click coordinates using JavaScript
-                try:
-                    #This is the crucial change. We find the element at the point using JS.
-                    script = f'''
-                        var element = document.elementFromPoint({x}, {y});
-                        if (element) {{
-                            element.click();
-                            return true; // Indicate success
-                        }} else {{
-                            return false; // Indicate element not found
-                        }}
-                    '''
-                    result = driver.execute_script(script)
-                    if not result:
-                        logging.warning(f"No element found at coordinates ({x}, {y})")
-                        return jsonify({'status': 'error', 'message': 'No element found at click location'})
-
-
-                except Exception as e:
-                    logging.error(f"Error clicking element: {e}")
-                    return jsonify({'status': 'error', 'message': str(e)})
-
-            elif action == 'input':
-                try:
-                    # Find element, focus, and send keys via JavaScript
-                    script = f'''
-                        var element = document.elementFromPoint({x}, {y});
-                        if (element) {{
-                            element.focus();
-                            element.value = "{text}"; // Set the value directly
-                            return true;
-                        }} else {{
-                            return false;
-                        }}
-                    '''
-                    result = driver.execute_script(script)
-                    if not result:
-                        logging.warning(f"No element found at coordinates ({x}, {y}) for input")
-                        return jsonify({'status': 'error', 'message': 'No element found at input location'})
-
-                except Exception as e:
-                     logging.error(f"Error in input action: {e}")
-                     return jsonify({'status': 'error', 'message': str(e)})
-
-            elif action == 'scroll':
-                driver.execute_script(f"window.scrollBy({x}, {y});")
-
-            elif action == 'keypress':
-                try:
-                    # Find element, focus, and send key via JavaScript
-                    if key == 'Enter':
-                        script = f'''
-                            var element = document.elementFromPoint({x}, {y});
-                            if (element) {{
-                                element.focus();
-                                var event = new KeyboardEvent('keydown', {{
-                                    key: 'Enter',
-                                    code: 'Enter',
-                                    which: 13,
-                                    keyCode: 13,
-                                    bubbles: true,
-                                    cancelable: true
-                                }});
-                                element.dispatchEvent(event);
-                                return true;
-                            }} else {{
-                                return false;
-                            }}
-                        '''
-                        result = driver.execute_script(script)
-                        if not result:
-                            logging.warning(f"No element found at coordinates ({x}, {y}) for keypress")
-                            return jsonify({'status': 'error', 'message': 'No element found at keypress location'})
-                except Exception as e:
-                     logging.error(f"Error in keypress action: {e}")
-                     return jsonify({'status': 'error', 'message': str(e)})
-
-            elif action == 'navigate':
-                new_url = validate_url(text)
-                if new_url:
-                     driver.get(new_url)
-                else:
-                    return jsonify({'status': 'error', 'message': 'Invalid URL'})
-
-            else:
-                return jsonify({'status': 'error', 'message': 'Invalid action'})
-
-            return jsonify({'status': 'success'})
-
-        except Exception as e:
-            logging.exception(f"An unexpected error occurred during interaction: {e}")  # Log full traceback
-            return jsonify({'status': 'error', 'message': str(e)})
-
-@app.route('/static/<path:path>')
-def send_static(path):
-    return send_from_directory('static', path)
+        return jsonify({'image': ''})  # Return empty string if no image yet
 
 
 if __name__ == '__main__':

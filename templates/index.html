@@ -1,222 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultimate Chrome 2</title>
     <style>
-        #browserContainer {
-            position: relative; /* Make container a positioning context */
-            width: 800px; /* Or whatever size you want */
-            height: 600px;
-            border: 1px solid black;
-        }
-        #browserImage {
-            width: 100%;
-            height: 100%;
-            /* Remove border if you have one on the container */
-        }
-        #overlay {
+        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }
+        #container { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        #controls { margin-bottom: 20px; }
+        #screenshot-container { border: 2px solid #ddd; width: 800px; height: 600px; overflow: hidden; position: relative; }
+        #screenshot { width: 100%; height: auto; display: block; }
+        #click-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; cursor: pointer; }
+        /* Style for the cursor */
+        #cursor {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0; /* Make it transparent */
-            z-index: 10; /* Ensure it's above the image */
-            cursor: crosshair; /* Change cursor to indicate interactivity*/
+            width: 20px;  /* Adjust size as needed */
+            height: 20px; /* Adjust size as needed */
+            background-color: rgba(255, 0, 0, 0.5); /* Semi-transparent red */
+            border-radius: 50%; /* Make it a circle */
+            pointer-events: none; /* Important: make it not interfere with clicks */
+            z-index: 11; /* Above the click overlay */
+            display: none; /* Initially hidden */
         }
-        #urlBar {
-            width: calc(100% - 80px); /* Adjust width based on button */
-            padding: 5px;
-            margin-right: 5px;
-        }
-         #navigateButton {
-            padding: 5px;
-        }
-        .input-container {
-            margin-bottom: 5px; /* Add some spacing between inputs */
-        }
-
+        #url-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-right: 5px; }
+        button { padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        #shutdown-btn { background-color: #f44336; }
+        #shutdown-btn:hover { background-color: #d32f2f; }
     </style>
 </head>
 <body>
-    <h1>Ultimate Chrome 2</h1>
-    <form id="startForm">
-        <label for="url">Initial URL:</label>
-        <input type="text" id="url" name="url" value="https://www.example.com">
-        <button type="submit">Start Browser</button>
-    </form>
-    <div id="status"></div>
-     <div class="input-container">
-        <input type="text" id="urlBar" placeholder="Enter URL">
-        <button id="navigateButton">Go</button>
+    <div id="container">
+        <div id="controls">
+            <input type="text" id="url-input" placeholder="Enter URL">
+            <button id="navigate-btn">Navigate</button>
+            <button id="shutdown-btn">Shutdown</button>
+        </div>
+        <div id="screenshot-container">
+            <img id="screenshot" src="" alt="Browser Screenshot">
+            <div id="click-overlay"></div>
+            <div id="cursor"></div>
+        </div>
     </div>
-    <div id="browserContainer">
-        <img id="browserImage" src="" alt="Browser View">
-        <div id="overlay"></div>
-    </div>
-
 
     <script>
-        let browserStarted = false;
-        let offsetX = 0;
-        let offsetY = 0;
+        const urlInput = document.getElementById('url-input');
+        const navigateBtn = document.getElementById('navigate-btn');
+        const screenshotImg = document.getElementById('screenshot');
+        const clickOverlay = document.getElementById('click-overlay');
+        const shutdownBtn = document.getElementById('shutdown-btn');
+        let screenshotContainer = document.getElementById('screenshot-container');
+        const cursor = document.getElementById('cursor'); // Cursor element
 
-        document.getElementById('startForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const url = document.getElementById('url').value;
-            fetch('/start_browser', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'url=' + encodeURIComponent(url)
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('status').textContent = data.status;
-                if (data.status === 'Browser started') {
-                    browserStarted = true;
-                   // Calculate offset *after* browser is started
-                    const rect = document.getElementById('browserContainer').getBoundingClientRect();
-                    offsetX = rect.left + window.scrollX;
-                    offsetY = rect.top + window.scrollY;
-                    getImage(); // Start fetching images
-                }
-            });
-        });
-
-        function getImage() {
-            if (!browserStarted) return;
-
-            fetch('/get_image')
-            .then(response => response.json())
-            .then(data => {
-                if (data.image) {
-                    document.getElementById('browserImage').src = 'data:image/jpeg;base64,' + data.image;
-                }
-                setTimeout(getImage, 100); // Fetch image every 100ms
-            })
-            .catch(error => {
-                console.error("Error fetching image:", error);
-                setTimeout(getImage, 1000); // Retry after 1 second on error
-            });
+        function updateScreenshot() {
+            fetch('/get_screenshot')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.image) {
+                        screenshotImg.src = `data:image/png;base64,${data.image}`;
+                    } else if (data.error) {
+                        console.error("Error fetching screenshot:", data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
         }
 
-         document.getElementById('overlay').addEventListener('click', function(event) {
-            if (!browserStarted) return;
+        navigateBtn.addEventListener('click', () => {
+            const url = urlInput.value;
+            fetch('/navigate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `url=${encodeURIComponent(url)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Navigated to:', data.current_url);
+                    updateScreenshot();
+                } else { console.error('Navigation error:', data.message); }
+            })
+            .catch(error => console.error('Error:', error));
+        });
 
-            const x = event.clientX - offsetX;
-            const y = event.clientY - offsetY;
 
-            // console.log("click x, y", x,y)
+      clickOverlay.addEventListener('click', (event) => {
+        const rect = screenshotContainer.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const width = rect.width;  // Get the reported width
+        const height = rect.height; // Get the reported height
 
+        fetch('/interact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'click', x: x, y: y, width: width, height: height }) // Send width and height
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                console.error('Click interaction error:', data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+        document.addEventListener('keydown', (event) => {
             fetch('/interact', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ action: 'click', x: x, y: y })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'keypress', key: event.key })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status !== 'success') {
-                    console.error('Interaction error:', data.message);
+                    console.error('Keypress interaction error:', data.message);
                 }
-            });
-        });
-
-         document.getElementById('overlay').addEventListener('contextmenu', function(event) { // Right-click for typing
-            event.preventDefault();
-            if (!browserStarted) return;
-
-            const x = event.clientX - offsetX;
-            const y = event.clientY - offsetY;
-            const text = prompt("Enter text:"); // Get text input
-
-            if (text !== null) { // Check if prompt was cancelled
-                 fetch('/interact', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ action: 'input', x: x, y: y, text: text })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status !== 'success') {
-                        console.error('Interaction error:', data.message);
-                    }
-                });
-            }
-        });
-
-        document.getElementById('overlay').addEventListener('wheel', function(event) {
-            event.preventDefault();
-            if (!browserStarted) return;
-
-            const deltaX = event.deltaX;
-            const deltaY = event.deltaY;
-
-            fetch('/interact', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ action: 'scroll', x: deltaX, y: deltaY }) // Send scroll deltas
             })
+            .catch(error => console.error('Error:', error));
+            event.preventDefault();
+        });
+
+        // --- Mouse Tracking ---
+        clickOverlay.addEventListener('mousemove', (event) => {
+            const rect = screenshotContainer.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Update cursor position
+            cursor.style.display = 'block';
+            cursor.style.left = `${x}px`;
+            cursor.style.top = `${y}px`;
+        });
+
+        // Hide cursor when mouse leaves the overlay
+        clickOverlay.addEventListener('mouseleave', () => {
+            cursor.style.display = 'none';
+        });
+
+        shutdownBtn.addEventListener('click', () => {
+            fetch('/shutdown', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                  if (data.status !== 'success') {
-                    console.error('Interaction error:', data.message);
-                }
-            });
+                if (data.status === 'success') {
+                    console.log('Browser shut down.');
+                    screenshotImg.src = "";
+                } else { console.error('Shutdown error:', data.message); }
+            })
+            .catch(error => console.error('Error:', error));
         });
 
-        document.getElementById('overlay').addEventListener('keydown', function(event) {
-            if (!browserStarted) return;
-            const key = event.key;
-
-            if (key === 'Enter') { // Example: Handle Enter key
-                const x = 0
-                const y = 0
-                fetch('/interact', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ action: 'keypress', key: key, x: x, y: y }) // Send key press
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status !== 'success') {
-                        console.error('Interaction error:', data.message);
-                    }
-                });
-            }
-        });
-
-        document.getElementById('navigateButton').addEventListener('click', function() {
-            const url = document.getElementById('urlBar').value;
-            if(browserStarted && url) {
-                fetch('/interact', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({action: 'navigate', text: url})
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status !== 'success') {
-                        console.error('Navigation error:', data.message);
-                    }
-                });
-            }
-        });
-
-        // Make sure the overlay is focusable to capture key events
-        document.getElementById('overlay').tabIndex = 0;
-
+        updateScreenshot();
+        setInterval(updateScreenshot, 100);
     </script>
 </body>
 </html>
